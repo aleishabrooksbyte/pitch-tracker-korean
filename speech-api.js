@@ -4,7 +4,7 @@ const englishMeaningDisplay = document.getElementById("english-meaning");
 const recordingButton = document.getElementById("recording-button");
 const listenButton = document.getElementById("listen-button");
 const nextButton = document.getElementById("next-button");
-const skipButton = document.getElementById("skip-button");
+const skipButton = document.getElementById("skip-button"); // <-- Make sure this line is here
 const transcriptionResult = document.getElementById("transcription-result");
 const feedback = document.getElementById("feedback");
 
