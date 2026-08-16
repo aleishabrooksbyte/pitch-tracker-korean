@@ -4,19 +4,29 @@
     <meta charset="UTF-8">
     <title>Korean Pitch Tracker</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        #feedback { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
-        .final { color: green; font-weight: bold; }
+        body { font-family: sans-serif; padding: 20px; max-width: 400px; margin: auto; text-align: center; }
+        .word-display { font-size: 2em; margin: 20px 0; color: #333; }
+        button { padding: 10px 20px; font-size: 1.1em; margin: 5px; border-radius: 8px; border: 1px solid #ccc; background-color: #f0f0f0; }
+        #feedback { margin-top: 20px; font-size: 1.2em; font-weight: bold; height: 30px; }
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .final { color: blue; font-weight: bold; }
+        #next-button { display: none; background-color: #d4edda; }
     </style>
 </head>
 <body>
-    <h2>Korean Pitch & Intonation Practice</h2>
-    <p>Target Phrase: <strong>안녕하세요</strong> (Hello)</p>
+    <h2>Korean Practice</h2>
     
-    <button id="recording-button">Start recording</button>
+    <div class="word-display" id="target-word">안녕하세요</div>
+    <div id="english-meaning">(Hello)</div>
     
-    <div id="transcription-result"></div>
-    <div id="pitch-feedback"></div>
+    <br>
+    <button id="listen-button">🔊 Hear Word</button>
+    <button id="recording-button">🎤 Start Recording</button>
+    <button id="next-button">Next Word ➡️</button>
+    
+    <div id="transcription-result" style="margin-top: 20px; min-height: 30px;"></div>
+    <div id="feedback"></div>
 
     <script src="speech-api.js"></script>
 </body>
