@@ -4,7 +4,7 @@ const englishMeaningDisplay = document.getElementById("english-meaning");
 const recordingButton = document.getElementById("recording-button");
 const listenButton = document.getElementById("listen-button");
 const nextButton = document.getElementById("next-button");
-const skipButton = document.getElementById("skip-button"); // <-- Make sure this line is here
+const skipButton = document.getElementById("skip-button");
 const transcriptionResult = document.getElementById("transcription-result");
 const feedback = document.getElementById("feedback");
 
@@ -15,6 +15,7 @@ const addButton = document.getElementById("add-button");
 let isRecording = false;
 let currentWordIndex = 0;
 
+// Expanded curated baseline vocabulary (Drama & Script focused)
 const vocabulary = [
     { korean: "안녕하세요", english: "(Hello)" },
     { korean: "이 대본 어때요?", english: "(How is this script?)" },
@@ -23,7 +24,12 @@ const vocabulary = [
     { korean: "진짜 웃겨요", english: "(It is really funny)" },
     { korean: "다시 한 번 해볼게요", english: "(I will try it one more time)" },
     { korean: "조금만 천천히 말해 주세요", english: "(Please speak a little slower)" },
-    { korean: "오늘 날씨가 참 좋네요", english: "(The weather is really nice today)" }
+    { korean: "오늘 날씨가 참 좋네요", english: "(The weather is really nice today)" },
+    { korean: "무슨 일 이에요?", english: "(What's going on? / What's the matter?)" },
+    { korean: "잠깐만요", english: "(Just a moment / Wait a second)" },
+    { korean: "믿을 수가 없어", english: "(I can't believe it)" },
+    { korean: "어떻게 알았어요?", english: "(How did you know?)" },
+    { korean: "정말 미안해요", english: "(I'm really sorry)" }
 ];
 
 function updateDisplay() {
@@ -96,12 +102,16 @@ listenButton.addEventListener("click", () => {
     window.speechSynthesis.speak(utterance);
 });
 
-// Advance to next phrase (used by both Next and Skip buttons)
+// Randomize to the next phrase (avoids immediate duplicates)
 function goToNextPhrase() {
-    currentWordIndex++;
-    if (currentWordIndex >= vocabulary.length) {
-        currentWordIndex = 0; 
-    }
+    if (vocabulary.length <= 1) return;
+    
+    let randomIndex;
+    do {
+        randomIndex = Math.floor(Math.random() * vocabulary.length);
+    } while (randomIndex === currentWordIndex);
+
+    currentWordIndex = randomIndex;
     updateDisplay();
 }
 
@@ -129,3 +139,6 @@ addButton.addEventListener("click", () => {
         alert("Please enter at least the Korean text.");
     }
 });
+
+// Initialize first phrase view
+updateDisplay();
