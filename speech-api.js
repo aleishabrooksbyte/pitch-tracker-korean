@@ -4,6 +4,7 @@ const englishMeaningDisplay = document.getElementById("english-meaning");
 const recordingButton = document.getElementById("recording-button");
 const listenButton = document.getElementById("listen-button");
 const nextButton = document.getElementById("next-button");
+const skipButton = document.getElementById("skip-button");
 const transcriptionResult = document.getElementById("transcription-result");
 const feedback = document.getElementById("feedback");
 
@@ -14,7 +15,6 @@ const addButton = document.getElementById("add-button");
 let isRecording = false;
 let currentWordIndex = 0;
 
-// Expanded curated baseline vocabulary
 const vocabulary = [
     { korean: "안녕하세요", english: "(Hello)" },
     { korean: "이 대본 어때요?", english: "(How is this script?)" },
@@ -26,16 +26,15 @@ const vocabulary = [
     { korean: "오늘 날씨가 참 좋네요", english: "(The weather is really nice today)" }
 ];
 
-// Update screen with current phrase
 function updateDisplay() {
     targetWordDisplay.textContent = vocabulary[currentWordIndex].korean;
     englishMeaningDisplay.textContent = vocabulary[currentWordIndex].english;
     transcriptionResult.textContent = "";
     feedback.textContent = "";
     nextButton.style.display = "none";
+    skipButton.style.display = "inline-block";
 }
 
-// Initialize Speech Recognition
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
@@ -61,6 +60,7 @@ if (typeof SpeechRecognition !== "undefined") {
                 feedback.textContent = "✅ Correct!";
                 feedback.className = "correct";
                 nextButton.style.display = "inline-block";
+                skipButton.style.display = "none";
             } else {
                 feedback.textContent = "❌ Try again. You said: " + currentTranscript;
                 feedback.className = "incorrect";
@@ -89,7 +89,6 @@ if (typeof SpeechRecognition !== "undefined") {
     transcriptionResult.textContent = "Speech Recognition not supported on this browser.";
 }
 
-// Text-to-Speech
 listenButton.addEventListener("click", () => {
     const utterance = new SpeechSynthesisUtterance(vocabulary[currentWordIndex].korean);
     utterance.lang = 'ko-KR';
@@ -97,16 +96,18 @@ listenButton.addEventListener("click", () => {
     window.speechSynthesis.speak(utterance);
 });
 
-// Cycle to next phrase
-nextButton.addEventListener("click", () => {
+// Advance to next phrase (used by both Next and Skip buttons)
+function goToNextPhrase() {
     currentWordIndex++;
     if (currentWordIndex >= vocabulary.length) {
         currentWordIndex = 0; 
     }
     updateDisplay();
-});
+}
 
-// Add custom phrase dynamically from phone inputs
+nextButton.addEventListener("click", goToNextPhrase);
+skipButton.addEventListener("click", goToNextPhrase);
+
 addButton.addEventListener("click", () => {
     const kText = newKoreanInput.value.trim();
     const eText = newEnglishInput.value.trim();
@@ -117,11 +118,9 @@ addButton.addEventListener("click", () => {
             english: eText ? `(${eText})` : "(Custom Phrase)" 
         });
         
-        // Clear inputs
         newKoreanInput.value = "";
         newEnglishInput.value = "";
         
-        // Jump straight to the newly added phrase
         currentWordIndex = vocabulary.length - 1;
         updateDisplay();
         
