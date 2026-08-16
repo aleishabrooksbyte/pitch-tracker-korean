@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- This is the magic line that fixes mobile scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Korean Pitch Tracker</title>
     <style>
@@ -18,25 +17,27 @@
             background-color: #f9f9f9; 
             text-align: center;
         }
-        .word-display { font-size: 2.5em; margin: 15px 0; color: #111; word-wrap: break-word; padding: 0 10px; }
-        .english-display { font-size: 1.2em; color: #666; margin-bottom: 30px; }
-        button { 
-            padding: 15px 25px; 
-            font-size: 1.2em; 
-            margin: 10px; 
+        .word-display { font-size: 2.2em; margin: 15px 0; color: #111; word-wrap: break-word; padding: 0 10px; }
+        .english-display { font-size: 1.2em; color: #666; margin-bottom: 20px; }
+        button, input { 
+            padding: 12px 20px; 
+            font-size: 1.1em; 
+            margin: 8px; 
             border-radius: 12px; 
-            border: none; 
-            background-color: #007aff; 
-            color: white; 
+            border: 1px solid #ccc; 
             width: 85%; 
             max-width: 320px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            box-sizing: border-box;
         }
+        button { border: none; background-color: #007aff; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { background-color: #fff; text-align: center; }
         #next-button { display: none; background-color: #34c759; }
         #recording-button { background-color: #ff3b30; }
-        #feedback { margin-top: 20px; font-size: 1.3em; font-weight: bold; height: 30px; }
+        #add-button { background-color: #5856d6; }
+        #feedback { margin-top: 15px; font-size: 1.2em; font-weight: bold; height: 30px; }
         .correct { color: #34c759; }
         .incorrect { color: #ff3b30; }
+        .input-container { margin-top: 25px; border-top: 1px solid #ddd; padding-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
     </style>
 </head>
 <body>
@@ -48,8 +49,14 @@
     <button id="recording-button">🎤 Start Recording</button>
     <button id="next-button">Next Phrase ➡️</button>
     
-    <div id="transcription-result" style="margin-top: 20px; min-height: 30px; font-size: 1.2em; color: #555;"></div>
+    <div id="transcription-result" style="margin-top: 15px; min-height: 25px; font-size: 1.1em; color: #555;"></div>
     <div id="feedback"></div>
+
+    <div class="input-container">
+        <input type="text" id="new-korean" placeholder="Type Korean phrase...">
+        <input type="text" id="new-english" placeholder="Type English meaning...">
+        <button id="add-button">➕ Add to Practice Deck</button>
+    </div>
 
     <script src="speech-api.js"></script>
 </body>
