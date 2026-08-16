@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Korean Pitch Tracker</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        #feedback { margin-top: 20px; font-size: 1.2em; font-weight: bold; }
+        .final { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Korean Pitch & Intonation Practice</h2>
+    <p>Target Phrase: <strong>안녕하세요</strong> (Hello)</p>
+    
+    <button id="recording-button">Start recording</button>
+    
+    <div id="transcription-result"></div>
+    <div id="pitch-feedback"></div>
+
+    <script src="speech-api.js"></script>
+</body>
+</html>
