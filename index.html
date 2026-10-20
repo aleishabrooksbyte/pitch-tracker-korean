@@ -17,11 +17,46 @@
             background-color: #f9f9f9; 
             text-align: center;
         }
-        h2 { font-size: 1.8em; color: #333; margin-bottom: 10px; }
-        .word-display { font-size: 2.5em; margin: 15px 0; color: #111; word-wrap: break-word; padding: 0 10px; font-weight: bold; }
-        .english-display { font-size: 1.3em; color: #666; margin-bottom: 15px; }
-        .deck-info { font-size: 0.95em; color: #888; margin-bottom: 15px; }
-        button, input { 
+        /* Ajumma Coach Styling */
+        .coach-container {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            padding: 10px 18px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 15px;
+            max-width: 340px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .coach-avatar {
+            width: 50px;
+            height: 50px;
+            background: #ffecb6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            flex-shrink: 0;
+            border: 2px solid #ff9500;
+        }
+        .coach-bubble {
+            margin-left: 12px;
+            text-align: left;
+            font-size: 0.95em;
+            color: #333;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        h2 { font-size: 1.6em; color: #333; margin: 5px 0 10px 0; }
+        .word-display { font-size: 2.5em; margin: 10px 0; color: #111; word-wrap: break-word; padding: 0 10px; font-weight: bold; }
+        .english-display { font-size: 1.3em; color: #666; margin-bottom: 10px; }
+        .deck-info { font-size: 0.9em; color: #888; margin-bottom: 15px; }
+        
+        button, input[type="text"] { 
             padding: 14px 20px; 
             font-size: 1.1em; 
             margin: 8px 0; 
@@ -32,21 +67,52 @@
             box-sizing: border-box;
         }
         button { border: none; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; font-weight: bold; }
-        input { background-color: #fff; text-align: center; }
+        input[type="text"] { background-color: #fff; text-align: center; }
+        
         #listen-button { background-color: #007aff; }
         #recording-button { background-color: #ff3b30; }
         #next-button { display: none; background-color: #34c759; }
         #skip-button { background-color: #ff9500; }
         #add-button { background-color: #5856d6; }
-        #upload-screenshot-btn { background-color: #af52de; }
-        #export-button { background-color: #8e8e93; font-size: 1em; }
+        
+        /* Bulletproof mobile file upload wrapper */
+        .upload-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 340px;
+            margin: 8px 0;
+        }
+        .upload-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 5;
+        }
+        #upload-screenshot-btn {
+            background-color: #af52de;
+            width: 100%;
+            margin: 0;
+            pointer-events: none; /* Lets clicks pass straight to the file input underneath */
+        }
+
+        #export-button { background-color: #8e8e93; font-size: 1em; max-width: 340px; width: 100%; }
         #feedback { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 30px; }
         .correct { color: #34c759; }
         .incorrect { color: #ff3b30; }
-        .input-container { margin-top: 25px; border-top: 1px solid #ddd; padding-top: 20px; width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; }
+        .input-container { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px; width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; }
     </style>
 </head>
 <body>
+    <!-- Cute Ajumma Pitch Coach Banner -->
+    <div class="coach-container">
+        <div class="coach-avatar">👩‍🍳</div>
+        <div class="coach-bubble" id="coach-message">안녕하세요! Ready to practice your pitch?</div>
+    </div>
+
     <h2>Korean Practice</h2>
     <div class="word-display" id="target-word">안녕하세요</div>
     <div class="english-display" id="english-meaning">(Hello)</div>
@@ -65,9 +131,12 @@
         <input type="text" id="new-english" placeholder="Type English meaning...">
         <button id="add-button">➕ Add to Practice Deck</button>
         
-        <input type="file" id="screenshot-input" accept="image/*" style="display: none;">
-        <button id="upload-screenshot-btn">📷 Upload Screenshot</button>
-        <div id="ocr-status" style="font-size: 0.9em; color: #666; margin-top: 8px;"></div>
+        <!-- Bulletproof mobile file upload -->
+        <div class="upload-wrapper">
+            <input type="file" id="screenshot-input" accept="image/*">
+            <button id="upload-screenshot-btn">📷 Upload Screenshot</button>
+        </div>
+        <div id="ocr-status" style="font-size: 0.9em; color: #666; margin-top: 5px;"></div>
         
         <button id="export-button">📥 Export Custom Phrases</button>
     </div>
