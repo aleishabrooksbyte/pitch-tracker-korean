@@ -46,6 +46,7 @@ const nextButton = document.getElementById('next-button');
 const skipButton = document.getElementById('skip-button');
 const transcriptionResult = document.getElementById('transcription-result');
 const feedbackEl = document.getElementById('feedback');
+const coachMessageEl = document.getElementById('coach-message');
 
 const newKoreanInput = document.getElementById('new-korean');
 const newEnglishInput = document.getElementById('new-english');
@@ -53,10 +54,9 @@ const addButton = document.getElementById('add-button');
 const exportButton = document.getElementById('export-button');
 
 const screenshotInput = document.getElementById('screenshot-input');
-const uploadScreenshotBtn = document.getElementById('upload-screenshot-btn');
 const ocrStatusEl = document.getElementById('ocr-status');
 
-// Pick a random phrase ensuring it doesn't repeat back-to-back
+// Pick a random phrase ensuring no back-to-back repeats
 function getRandomPhrase() {
     if (vocabularyDeck.length === 0) return;
     
@@ -75,18 +75,20 @@ function getRandomPhrase() {
     transcriptionResult.innerText = "";
     feedbackEl.innerText = "";
     nextButton.style.display = "none";
+    coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// Text-to-Speech pronunciation (Fixed for iOS volume and queue locking)
+// Text-to-Speech pronunciation (iOS volume fixed)
 listenButton.addEventListener('click', () => {
     const currentItem = vocabularyDeck[currentIndex];
     if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // Clears any stuck audio queues on mobile
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(currentItem.korean);
         utterance.lang = 'ko-KR';
-        utterance.volume = 1.0; // Forces full volume
-        utterance.rate = 0.9;   // Clear pacing for pitch tracking
+        utterance.volume = 1.0;
+        utterance.rate = 0.9;
         window.speechSynthesis.speak(utterance);
+        coachMessageEl.innerText = "Listening closely helps your pitch!";
     } else {
         alert("Text-to-speech is not supported in this browser.");
     }
@@ -104,6 +106,7 @@ if (SpeechRecognition) {
         feedbackEl.innerText = "Listening...";
         feedbackEl.style.color = "#007aff";
         transcriptionResult.innerText = "";
+        coachMessageEl.innerText = "I'm listening to your pitch! Speak clearly.";
         try {
             recognition.start();
         } catch (e) {
@@ -122,15 +125,18 @@ if (SpeechRecognition) {
             feedbackEl.innerText = "Correct! 🎉";
             feedbackEl.className = "correct";
             nextButton.style.display = "block";
+            coachMessageEl.innerText = "Wonderful job! Perfect pitch! 🌟";
         } else {
             feedbackEl.innerText = "Try again! 💪";
             feedbackEl.className = "incorrect";
+            coachMessageEl.innerText = "So close! Check your pitch and try again.";
         }
     };
 
     recognition.onerror = (event) => {
         feedbackEl.innerText = "Error recognizing speech. Try again.";
         feedbackEl.className = "incorrect";
+        coachMessageEl.innerText = "Oops, didn't catch that. Tap record again!";
     };
 } else {
     recordingButton.style.display = "none";
@@ -139,7 +145,10 @@ if (SpeechRecognition) {
 
 // Navigation buttons
 nextButton.addEventListener('click', getRandomPhrase);
-skipButton.addEventListener('click', getRandomPhrase);
+skipButton.addEventListener('click', () => {
+    coachMessageEl.innerText = "No worries, let's try a new one!";
+    getRandomPhrase();
+});
 
 // Add custom phrase handler
 addButton.addEventListener('click', () => {
@@ -162,19 +171,17 @@ addButton.addEventListener('click', () => {
     newEnglishInput.value = "";
     feedbackEl.innerText = "Phrase added permanently! ✨";
     feedbackEl.style.color = "#5856d6";
+    coachMessageEl.innerText = "Added to your deck! Let's practice it!";
 });
 
-// Screenshot OCR Handling
-uploadScreenshotBtn.addEventListener('click', () => {
-    screenshotInput.click();
-});
-
+// Direct Screenshot OCR Handling (Fixed for mobile file tapping)
 screenshotInput.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     ocrStatusEl.innerText = "Scanning screenshot... 🔍";
     ocrStatusEl.style.color = "#007aff";
+    coachMessageEl.innerText = "Reading your screenshot for vocabulary...";
 
     Tesseract.recognize(
         file,
@@ -194,6 +201,7 @@ screenshotInput.addEventListener('change', (event) => {
         console.error(err);
         ocrStatusEl.innerText = "Could not read image. Try a clearer shot.";
         ocrStatusEl.style.color = "#ff3b30";
+        coachMessageEl.innerText = "Hmm, couldn't read that image clearly.";
     });
 });
 
@@ -215,10 +223,12 @@ function parseExtractedText(rawText) {
         if (englishFound) newEnglishInput.value = englishFound;
         feedbackEl.innerText = "Text extracted! Review and tap Add.";
         feedbackEl.style.color = "#34c759";
+        coachMessageEl.innerText = "Found it! Check the box and add it.";
     } else {
         newKoreanInput.value = rawText.trim();
         feedbackEl.innerText = "Extracted text loaded into box.";
         feedbackEl.style.color = "#ff9500";
+        coachMessageEl.innerText = "Check the text box and tap Add!";
     }
 }
 
@@ -231,6 +241,7 @@ exportButton.addEventListener('click', () => {
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    coachMessageEl.innerText = "Deck backed up successfully!";
 });
 
 // Initial load setup
