@@ -17,7 +17,6 @@
             background-color: #f9f9f9; 
             text-align: center;
         }
-        /* Ajumma Coach Styling */
         .coach-container {
             display: flex;
             align-items: center;
@@ -38,60 +37,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-sizeLooking at your screenshot, I see exactly what caused this! 
-
-The page is missing the **Ajumma Coach** section at the top. Because `speech-api.js` was looking for the element `coach-message` (which isn't in your current HTML file), JavaScript threw a quiet error as soon as the script loaded. When JavaScript encounters a missing element error at initialization, it **stops executing entirely**—which freezes all button clicks, resets the deck counter display to 0, and stops the screenshot scanner from triggering.
-
-To get everything working smoothly, both files need to match up completely. 
-
-Here are the complete, clean versions of both files. Once you update both on GitHub, your app will immediately work again!
-
----
-
-### 1. Complete `index.html`
-
-Replace **everything** in your `index.html` file with this:
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Korean Pitch Tracker</title>
-    <style>
-        body { 
-            font-family: -apple-system, sans-serif; 
-            padding: 20px; 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 90vh; 
-            background-color: #f9f9f9; 
-            text-align: center;
-        }
-        .coach-container {
-            display: flex;
-            align-items: center;
-            background: #fff;
-            padding: 10px 18px;
-            border-radius: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin-bottom: 15px;
-            max-width: 340px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .coach-avatar {
-            width: 50px;
-            height: 50px;
-            background: #ffecb6;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 1.8em;
             flex-shrink: 0;
             border: 2px solid #ff9500;
@@ -105,12 +50,12 @@ Replace **everything** in your `index.html` file with this:
             word-break: break-word;
         }
 
-        h2 { font-size: 1.6em; color: #333; margin: 5px 0 10px 0; }
-        .word-display { font-size: 2.5em; margin: 10px 0; color: #111; word-wrap: break-word; padding: 0 10px; font-weight: bold; }
-        .english-display { font-size: 1.3em; color: #666; margin-bottom: 10px; }
-        .deck-info { font-size: 0.9em; color: #888; margin-bottom: 15px; }
+        h2 { font-size: 1.8em; color: #333; margin: 5px 0 10px 0; }
+        .word-display { font-size: 2.5em; margin: 15px 0; color: #111; word-wrap: break-word; padding: 0 10px; font-weight: bold; }
+        .english-display { font-size: 1.3em; color: #666; margin-bottom: 15px; }
+        .deck-info { font-size: 0.95em; color: #888; margin-bottom: 15px; }
         
-        button, input[type="text"] { 
+        button, input[type="text"], textarea { 
             padding: 14px 20px; 
             font-size: 1.1em; 
             margin: 8px 0; 
@@ -121,42 +66,22 @@ Replace **everything** in your `index.html` file with this:
             box-sizing: border-box;
         }
         button { border: none; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); cursor: pointer; font-weight: bold; }
-        input[type="text"] { background-color: #fff; text-align: center; }
+        input[type="text"], textarea { background-color: #fff; text-align: center; font-family: inherit; }
         
         #listen-button { background-color: #007aff; }
         #recording-button { background-color: #ff3b30; }
         #next-button { display: none; background-color: #34c759; }
         #skip-button { background-color: #ff9500; }
         #add-button { background-color: #5856d6; }
+        #batch-add-button { background-color: #af52de; }
+        #export-button { background-color: #8e8e93; font-size: 1em; }
         
-        .upload-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 340px;
-            margin: 8px 0;
-        }
-        .upload-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            cursor: pointer;
-            z-index: 5;
-        }
-        #upload-screenshot-btn {
-            background-color: #af52de;
-            width: 100%;
-            margin: 0;
-            pointer-events: none;
-        }
-
-        #export-button { background-color: #8e8e93; font-size: 1em; max-width: 340px; width: 100%; }
         #feedback { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 30px; }
         .correct { color: #34c759; }
         .incorrect { color: #ff3b30; }
+        
         .input-container { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px; width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; }
+        .batch-section { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
     </style>
 </head>
 <body>
@@ -183,16 +108,14 @@ Replace **everything** in your `index.html` file with this:
         <input type="text" id="new-english" placeholder="Type English meaning...">
         <button id="add-button">➕ Add to Practice Deck</button>
         
-        <div class="upload-wrapper">
-            <input type="file" id="screenshot-input" accept="image/*">
-            <button id="upload-screenshot-btn">📷 Upload Screenshot</button>
+        <div class="batch-section">
+            <textarea id="batch-input" rows="3" placeholder="Paste multiple Korean lines here..."></textarea>
+            <button id="batch-add-button">📋 Import Multiple Phrases</button>
         </div>
-        <div id="ocr-status" style="font-size: 0.9em; color: #666; margin-top: 5px;"></div>
         
         <button id="export-button">📥 Export Custom Phrases</button>
     </div>
 
-    <script src="[https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js](https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js)"></script>
     <script src="speech-api.js"></script>
 </body>
 </html>
