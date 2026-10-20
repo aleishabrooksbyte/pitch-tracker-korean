@@ -54,12 +54,11 @@ const coachMessageEl = document.getElementById('coach-message');
 const newKoreanInput = document.getElementById('new-korean');
 const newEnglishInput = document.getElementById('new-english');
 const addButton = document.getElementById('add-button');
+const batchInput = document.getElementById('batch-input');
+const batchAddButton = document.getElementById('batch-add-button');
 const exportButton = document.getElementById('export-button');
 
-const screenshotInput = document.getElementById('screenshot-input');
-const ocrStatusEl = document.getElementById('ocr-status');
-
-// Helper function to clean and fix Korean spacing/particle issues from OCR
+// Clean Korean text spacing and particles
 function cleanKoreanText(text) {
     return text
         .replace(/[^가-힣a-zA-Z0-9\s.,?!~]/g, '')
@@ -91,7 +90,7 @@ function getRandomPhrase() {
     if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// Text-to-Speech pronunciation (iOS volume fixed)
+// Text-to-Speech pronunciation
 if (listenButton) {
     listenButton.addEventListener('click', () => {
         if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
@@ -178,7 +177,7 @@ if (skipButton) {
     });
 }
 
-// Add custom phrase handler
+// Add single custom phrase
 if (addButton) {
     addButton.addEventListener('click', () => {
         const kText = newKoreanInput ? newKoreanInput.value.trim() : "";
@@ -206,97 +205,53 @@ if (addButton) {
     });
 }
 
-// Screenshot OCR Handling
-if (screenshotInput) {
-    screenshotInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (ocrStatusEl) {
-            ocrStatusEl.innerText = "Scanning full screenshot... 🔍";
-            ocrStatusEl.style.color = "#007aff";
+// Batch import multiple phrases pasted from screenshots
+if (batchAddButton) {
+    batchAddButton.addEventListener('click', () => {
+        const rawText = batchInput ? batchInput.value.trim() : "";
+        if (!rawText) {
+            alert("Please paste text into the box first.");
+            return;
         }
-        if (coachMessageEl) coachMessageEl.innerText = "Scanning and fixing Korean grammar spacing...";
 
-        Tesseract.recognize(
-            file,
-            'kor+eng',
-            { 
-                logger: m => {
-                    if (m.status === 'recognizing text' && ocrStatusEl) {
-                        ocrStatusEl.innerText = `Reading & cleaning: ${Math.round(m.progress * 100)}%`;
-                    }
+        const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        let addedCount = 0;
+        let currentKorean = "";
+
+        for (let i = 0; i < lines.length; i++) {
+            let line = lines[i];
+            if (/[가-힣]/.test(line)) {
+                line = cleanKoreanText(line);
+                if (currentKorean) {
+                    vocabularyDeck.push({ korean: currentKorean, english: "(Custom phrase)" });
+                    addedCount++;
                 }
-            }
-        ).then(({ data: { text } }) => {
-            if (ocrStatusEl) ocrStatusEl.innerText = "";
-            parseAndBatchAddText(text);
-            screenshotInput.value = "";
-        }).catch(err => {
-            console.error(err);
-            if (ocrStatusEl) {
-                ocrStatusEl.innerText = "Could not read image. Try a clearer shot.";
-                ocrStatusEl.style.color = "#ff3b30";
-            }
-            if (coachMessageEl) coachMessageEl.innerText = "Hmm, couldn't read that image clearly.";
-        });
-    });
-}
-
-function parseAndBatchAddText(rawText) {
-    const rawLines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
-    let addedCount = 0;
-    let currentKorean = "";
-
-    for (let i = 0; i < rawLines.length; i++) {
-        let line = rawLines[i];
-
-        if (/[가-힣]/.test(line)) {
-            line = cleanKoreanText(line);
-
-            if (currentKorean) {
-                vocabularyDeck.push({
-                    korean: currentKorean,
-                    english: "(Custom phrase)"
-                });
+                currentKorean = line;
+            } else if (currentKorean && line.length > 1) {
+                vocabularyDeck.push({ korean: currentKorean, english: `(${line})` });
                 addedCount++;
+                currentKorean = "";
             }
-            currentKorean = line;
-        } else if (currentKorean && line.length > 1) {
-            vocabularyDeck.push({
-                korean: currentKorean,
-                english: `(${line.trim()})`
-            });
+        }
+
+        if (currentKorean) {
+            vocabularyDeck.push({ korean: cleanKoreanText(currentKorean), english: "(Custom phrase)" });
             addedCount++;
-            currentKorean = "";
         }
-    }
 
-    if (currentKorean) {
-        vocabularyDeck.push({
-            korean: cleanKoreanText(currentKorean),
-            english: "(Custom phrase)"
-        });
-        addedCount++;
-    }
-
-    if (addedCount > 0) {
-        saveVocabulary();
-        if (feedbackEl) {
-            feedbackEl.innerText = `Added ${addedCount} cleaned phrases! 🎉`;
-            feedbackEl.className = "correct";
+        if (addedCount > 0) {
+            saveVocabulary();
+            if (batchInput) batchInput.value = "";
+            if (feedbackEl) {
+                feedbackEl.innerText = `Imported ${addedCount} phrases! 🎉`;
+                feedbackEl.className = "correct";
+            }
+            if (coachMessageEl) coachMessageEl.innerText = `Added ${addedCount} phrases to your deck! 🌟`;
+            getRandomPhrase();
+        } else {
+            alert("No valid Korean text found in the pasted text.");
         }
-        if (coachMessageEl) coachMessageEl.innerText = `Cleaned up and added ${addedCount} phrases to your deck! 🌟`;
-        
-        getRandomPhrase();
-    } else {
-        if (feedbackEl) {
-            feedbackEl.innerText = "No clear Korean text detected.";
-            feedbackEl.className = "incorrect";
-        }
-        if (coachMessageEl) coachMessageEl.innerText = "I couldn't find clear Korean text in that screenshot.";
-    }
+    });
 }
 
 // Export JSON backup
