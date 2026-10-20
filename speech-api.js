@@ -14,7 +14,10 @@ function loadVocabulary() {
     const saved = localStorage.getItem('korean_custom_deck');
     if (saved) {
         try {
-            return JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed;
+            }
         } catch (e) {
             console.error("Error loading saved deck, falling back to defaults", e);
         }
@@ -58,22 +61,17 @@ const ocrStatusEl = document.getElementById('ocr-status');
 
 // Helper function to clean and fix Korean spacing/particle issues from OCR
 function cleanKoreanText(text) {
-    let cleaned = text
-        // Remove random non-Korean/non-English OCR noise or weird floating symbols
+    return text
         .replace(/[^가-힣a-zA-Z0-9\s.,?!~]/g, '')
-        // Rejoin particles that got separated by spaces (e.g. "하 세 요" -> "하세요", "책 을" -> "책을")
         .replace(/\s+([요을를은는이가에도서로으로과와박밖에]+)(\s|$)/g, '$1$2')
         .replace(/\s+([요]+)/g, '$1')
-        // Clean up multiple spaces
         .replace(/\s+/g, ' ')
         .trim();
-        
-    return cleaned;
 }
 
 // Pick a random phrase ensuring no back-to-back repeats
 function getRandomPhrase() {
-    if (vocabularyDeck.length === 0) return;
+    if (!vocabularyDeck || vocabularyDeck.length === 0) return;
     
     if (vocabularyDeck.length === 1) {
         currentIndex = 0;
@@ -85,49 +83,48 @@ function getRandomPhrase() {
     lastIndex = currentIndex;
     
     const currentItem = vocabularyDeck[currentIndex];
-    targetWordEl.innerText = currentItem.korean;
-    englishMeaningEl.innerText = currentItem.english;
-    transcriptionResult.innerText = "";
-    feedbackEl.innerText = "";
-    nextButton.style.display = "none";
-    if (coachMessageEl) {
-        coachMessageEl.innerText = "Listen to the pitch and try matching it!";
-    }
+    if (targetWordEl) targetWordEl.innerText = currentItem.korean;
+    if (englishMeaningEl) englishMeaningEl.innerText = currentItem.english;
+    if (transcriptionResult) transcriptionResult.innerText = "";
+    if (feedbackEl) feedbackEl.innerText = "";
+    if (nextButton) nextButton.style.display = "none";
+    if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
 // Text-to-Speech pronunciation (iOS volume fixed)
-listenButton.addEventListener('click', () => {
-    const currentItem = vocabularyDeck[currentIndex];
-    if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(currentItem.korean);
-        utterance.lang = 'ko-KR';
-        utterance.volume = 1.0;
-        utterance.rate = 0.9;
-        window.speechSynthesis.speak(utterance);
-        if (coachMessageEl) {
-            coachMessageEl.innerText = "Listening closely helps your pitch!";
+if (listenButton) {
+    listenButton.addEventListener('click', () => {
+        if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
+        const currentItem = vocabularyDeck[currentIndex];
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(currentItem.korean);
+            utterance.lang = 'ko-KR';
+            utterance.volume = 1.0;
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+            if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
+        } else {
+            alert("Text-to-speech is not supported in this browser.");
         }
-    } else {
-        alert("Text-to-speech is not supported in this browser.");
-    }
-});
+    });
+}
 
 // Speech Recognition setup
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
+if (SpeechRecognition && recordingButton) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'ko-KR';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     recordingButton.addEventListener('click', () => {
-        feedbackEl.innerText = "Listening...";
-        feedbackEl.style.color = "#007aff";
-        transcriptionResult.innerText = "";
-        if (coachMessageEl) {
-            coachMessageEl.innerText = "I'm listening to your pitch! Speak clearly.";
+        if (feedbackEl) {
+            feedbackEl.innerText = "Listening...";
+            feedbackEl.style.color = "#007aff";
         }
+        if (transcriptionResult) transcriptionResult.innerText = "";
+        if (coachMessageEl) coachMessageEl.innerText = "I'm listening to your pitch! Speak clearly.";
         try {
             recognition.start();
         } catch (e) {
@@ -137,107 +134,111 @@ if (SpeechRecognition) {
 
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript.trim();
-        transcriptionResult.innerText = `You said: ${transcript}`;
+        if (transcriptionResult) transcriptionResult.innerText = `You said: ${transcript}`;
         
         const targetText = vocabularyDeck[currentIndex].korean.replace(/[.,?!]/g, "").trim();
         const cleanedTranscript = transcript.replace(/[.,?!]/g, "").trim();
 
         if (cleanedTranscript === targetText) {
-            feedbackEl.innerText = "Correct! 🎉";
-            feedbackEl.className = "correct";
-            nextButton.style.display = "block";
-            if (coachMessageEl) {
-                coachMessageEl.innerText = "Wonderful job! Perfect pitch! 🌟";
+            if (feedbackEl) {
+                feedbackEl.innerText = "Correct! 🎉";
+                feedbackEl.className = "correct";
             }
+            if (nextButton) nextButton.style.display = "block";
+            if (coachMessageEl) coachMessageEl.innerText = "Wonderful job! Perfect pitch! 🌟";
         } else {
-            feedbackEl.innerText = "Try again! 💪";
-            feedbackEl.className = "incorrect";
-            if (coachMessageEl) {
-                coachMessageEl.innerText = "So close! Check your pitch and try again.";
+            if (feedbackEl) {
+                feedbackEl.innerText = "Try again! 💪";
+                feedbackEl.className = "incorrect";
             }
+            if (coachMessageEl) coachMessageEl.innerText = "So close! Check your pitch and try again.";
         }
     };
 
-    recognition.onerror = (event) => {
-        feedbackEl.innerText = "Error recognizing speech. Try again.";
-        feedbackEl.className = "incorrect";
-        if (coachMessageEl) {
-            coachMessageEl.innerText = "Oops, didn't catch that. Tap record again!";
+    recognition.onerror = () => {
+        if (feedbackEl) {
+            feedbackEl.innerText = "Error recognizing speech. Try again.";
+            feedbackEl.className = "incorrect";
         }
+        if (coachMessageEl) coachMessageEl.innerText = "Oops, didn't catch that. Tap record again!";
     };
-} else {
+} else if (recordingButton) {
     recordingButton.style.display = "none";
-    transcriptionResult.innerText = "Speech recognition not supported in this browser. Use Safari or Chrome.";
+    if (transcriptionResult) {
+        transcriptionResult.innerText = "Speech recognition not supported in this browser. Use Safari or Chrome.";
+    }
 }
 
 // Navigation buttons
-nextButton.addEventListener('click', getRandomPhrase);
-skipButton.addEventListener('click', () => {
-    if (coachMessageEl) {
-        coachMessageEl.innerText = "No worries, let's try a new one!";
-    }
-    getRandomPhrase();
-});
+if (nextButton) nextButton.addEventListener('click', getRandomPhrase);
+if (skipButton) {
+    skipButton.addEventListener('click', () => {
+        if (coachMessageEl) coachMessageEl.innerText = "No worries, let's try a new one!";
+        getRandomPhrase();
+    });
+}
 
 // Add custom phrase handler
-addButton.addEventListener('click', () => {
-    const kText = newKoreanInput.value.trim();
-    const eText = newEnglishInput.value.trim();
+if (addButton) {
+    addButton.addEventListener('click', () => {
+        const kText = newKoreanInput ? newKoreanInput.value.trim() : "";
+        const eText = newEnglishInput ? newEnglishInput.value.trim() : "";
 
-    if (!kText) {
-        alert("Please enter a Korean phrase.");
-        return;
-    }
+        if (!kText) {
+            alert("Please enter a Korean phrase.");
+            return;
+        }
 
-    vocabularyDeck.push({
-        korean: cleanKoreanText(kText),
-        english: eText ? `(${eText})` : "(Custom phrase)"
+        vocabularyDeck.push({
+            korean: cleanKoreanText(kText),
+            english: eText ? `(${eText})` : "(Custom phrase)"
+        });
+
+        saveVocabulary();
+
+        if (newKoreanInput) newKoreanInput.value = "";
+        if (newEnglishInput) newEnglishInput.value = "";
+        if (feedbackEl) {
+            feedbackEl.innerText = "Phrase added permanently! ✨";
+            feedbackEl.style.color = "#5856d6";
+        }
+        if (coachMessageEl) coachMessageEl.innerText = "Added to your deck! Let's practice it!";
     });
+}
 
-    saveVocabulary();
-
-    newKoreanInput.value = "";
-    newEnglishInput.value = "";
-    feedbackEl.innerText = "Phrase added permanently! ✨";
-    feedbackEl.style.color = "#5856d6";
-    if (coachMessageEl) {
-        coachMessageEl.innerText = "Added to your deck! Let's practice it!";
-    }
-});
-
-// Screenshot OCR Handling (Batch Extraction with Korean Particle Cleanup)
+// Screenshot OCR Handling
 if (screenshotInput) {
     screenshotInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
-        ocrStatusEl.innerText = "Scanning full screenshot... 🔍";
-        ocrStatusEl.style.color = "#007aff";
-        if (coachMessageEl) {
-            coachMessageEl.innerText = "Scanning and fixing Korean grammar spacing...";
+        if (ocrStatusEl) {
+            ocrStatusEl.innerText = "Scanning full screenshot... 🔍";
+            ocrStatusEl.style.color = "#007aff";
         }
+        if (coachMessageEl) coachMessageEl.innerText = "Scanning and fixing Korean grammar spacing...";
 
         Tesseract.recognize(
             file,
             'kor+eng',
             { 
                 logger: m => {
-                    if (m.status === 'recognizing text') {
+                    if (m.status === 'recognizing text' && ocrStatusEl) {
                         ocrStatusEl.innerText = `Reading & cleaning: ${Math.round(m.progress * 100)}%`;
                     }
                 }
             }
         ).then(({ data: { text } }) => {
-            ocrStatusEl.innerText = "";
+            if (ocrStatusEl) ocrStatusEl.innerText = "";
             parseAndBatchAddText(text);
             screenshotInput.value = "";
         }).catch(err => {
             console.error(err);
-            ocrStatusEl.innerText = "Could not read image. Try a clearer shot.";
-            ocrStatusEl.style.color = "#ff3b30";
-            if (coachMessageEl) {
-                coachMessageEl.innerText = "Hmm, couldn't read that image clearly.";
+            if (ocrStatusEl) {
+                ocrStatusEl.innerText = "Could not read image. Try a clearer shot.";
+                ocrStatusEl.style.color = "#ff3b30";
             }
+            if (coachMessageEl) coachMessageEl.innerText = "Hmm, couldn't read that image clearly.";
         });
     });
 }
@@ -264,3 +265,54 @@ function parseAndBatchAddText(rawText) {
             currentKorean = line;
         } else if (currentKorean && line.length > 1) {
             vocabularyDeck.push({
+                korean: currentKorean,
+                english: `(${line.trim()})`
+            });
+            addedCount++;
+            currentKorean = "";
+        }
+    }
+
+    if (currentKorean) {
+        vocabularyDeck.push({
+            korean: cleanKoreanText(currentKorean),
+            english: "(Custom phrase)"
+        });
+        addedCount++;
+    }
+
+    if (addedCount > 0) {
+        saveVocabulary();
+        if (feedbackEl) {
+            feedbackEl.innerText = `Added ${addedCount} cleaned phrases! 🎉`;
+            feedbackEl.className = "correct";
+        }
+        if (coachMessageEl) coachMessageEl.innerText = `Cleaned up and added ${addedCount} phrases to your deck! 🌟`;
+        
+        getRandomPhrase();
+    } else {
+        if (feedbackEl) {
+            feedbackEl.innerText = "No clear Korean text detected.";
+            feedbackEl.className = "incorrect";
+        }
+        if (coachMessageEl) coachMessageEl.innerText = "I couldn't find clear Korean text in that screenshot.";
+    }
+}
+
+// Export JSON backup
+if (exportButton) {
+    exportButton.addEventListener('click', () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vocabularyDeck, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "korean_vocabulary_backup.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        if (coachMessageEl) coachMessageEl.innerText = "Deck backed up successfully!";
+    });
+}
+
+// Initial load setup
+updateDeckCounter();
+getRandomPhrase();
