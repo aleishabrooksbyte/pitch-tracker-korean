@@ -51,9 +51,9 @@
         }
 
         h2 { font-size: 1.8em; color: #333; margin: 5px 0 10px 0; }
-        .word-display { font-size: 2.5em; margin: 15px 0; color: #111; word-wrap: break-word; padding: 0 10px; font-weight: bold; }
+        .word-display { font-size: 2.2em; margin: 15px 0; color: #111; word-wrap: break-word; padding: 0 10px; font-weight: bold; }
         .english-display { font-size: 1.3em; color: #666; margin-bottom: 15px; }
-        .deck-info { font-size: 0.95em; color: #888; margin-bottom: 15px; }
+        .deck-info { font-size: 0.95em; color: #888; margin-bottom: 15px; cursor: pointer; text-decoration: underline; }
         
         button, input[type="text"], textarea { 
             padding: 14px 20px; 
@@ -74,6 +74,7 @@
         #skip-button { background-color: #ff9500; }
         #add-button { background-color: #5856d6; }
         #batch-add-button { background-color: #af52de; }
+        #undo-button { background-color: #ff9500; font-size: 0.95em; display: none; }
         #export-button { background-color: #8e8e93; font-size: 1em; }
         
         #feedback { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 30px; }
@@ -82,6 +83,44 @@
         
         .input-container { margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px; width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; }
         .batch-section { margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; }
+
+        /* Modal for managing deck */
+        #deck-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .deck-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        .delete-btn {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -93,7 +132,7 @@
     <h2>Korean Practice</h2>
     <div class="word-display" id="target-word">안녕하세요</div>
     <div class="english-display" id="english-meaning">(Hello)</div>
-    <div class="deck-info" id="deck-counter">Practice Deck: 0 phrases</div>
+    <div class="deck-info" id="deck-counter">Practice Deck: 0 phrases (Tap to manage)</div>
     
     <button id="listen-button">🔊 Hear Phrase</button>
     <button id="recording-button">🎤 Start Recording</button>
@@ -109,11 +148,21 @@
         <button id="add-button">➕ Add to Practice Deck</button>
         
         <div class="batch-section">
-            <textarea id="batch-input" rows="3" placeholder="Paste multiple Korean lines here..."></textarea>
+            <textarea id="batch-input" rows="3" placeholder="Paste multiple lines (e.g. 161 목 neck throat)..."></textarea>
             <button id="batch-add-button">📋 Import Multiple Phrases</button>
+            <button id="undo-button">↩️ Undo Last Import</button>
         </div>
         
         <button id="export-button">📥 Export Custom Phrases</button>
+    </div>
+
+    <!-- Deck Manager Modal -->
+    <div id="deck-modal">
+        <div class="modal-content">
+            <h3>Manage Practice Deck</h3>
+            <div id="deck-list"></div>
+            <button id="close-modal" style="background: #007aff; margin-top: 15px; width: 100%;">Close Manager</button>
+        </div>
     </div>
 
     <script src="speech-api.js"></script>
