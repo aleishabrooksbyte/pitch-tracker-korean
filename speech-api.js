@@ -7,8 +7,8 @@ const defaultVocabulary = [
     { korean: "잘 지내세요?", english: "(How have you been?)" }
 ];
 
-// Load vocabulary from localStorage or initialize with defaults
 let vocabularyDeck = loadVocabulary();
+let lastAddedBatchCount = 0; // Tracks last batch size for Undo
 
 function loadVocabulary() {
     const saved = localStorage.getItem('korean_custom_deck');
@@ -19,7 +19,7 @@ function loadVocabulary() {
                 return parsed;
             }
         } catch (e) {
-            console.error("Error loading saved deck, falling back to defaults", e);
+            console.error("Error loading saved deck", e);
         }
     }
     return [...defaultVocabulary];
@@ -33,7 +33,7 @@ function saveVocabulary() {
 function updateDeckCounter() {
     const counter = document.getElementById('deck-counter');
     if (counter) {
-        counter.innerText = `Practice Deck: ${vocabularyDeck.length} phrases loaded`;
+        counter.innerText = `Practice Deck: ${vocabularyDeck.length} phrases (Tap to manage)`;
     }
 }
 
@@ -56,19 +56,43 @@ const newEnglishInput = document.getElementById('new-english');
 const addButton = document.getElementById('add-button');
 const batchInput = document.getElementById('batch-input');
 const batchAddButton = document.getElementById('batch-add-button');
+const undoButton = document.getElementById('undo-button');
 const exportButton = document.getElementById('export-button');
 
-// Clean Korean text spacing and particles
-function cleanKoreanText(text) {
-    return text
+const deckCounterEl = document.getElementById('deck-counter');
+const deckModal = document.getElementById('deck-modal');
+const closeModal = document.getElementById('close-modal');
+const deckListEl = document.getElementById('deck-list');
+
+// Intelligent cleaner: Removes leading numbers and extracts English
+function parseAndCleanLine(line) {
+    // 1. Remove leading numbers (e.g., "161 목" -> "목")
+    let cleaned = line.replace(/^\d+\s*/, '').trim();
+
+    // 2. Separate English words if present on the same line (e.g., "목 neck throat")
+    const englishMatch = cleaned.match(/[a-zA-Z\s,()]+$/);
+    let englishPart = "";
+    
+    if (englishMatch && englishMatch[0].trim().length > 1) {
+        englishPart = englishMatch[0].trim();
+        cleaned = cleaned.replace(englishMatch[0], '').trim();
+    }
+
+    // 3. Clean Korean spacing & particles
+    cleaned = cleaned
         .replace(/[^가-힣a-zA-Z0-9\s.,?!~]/g, '')
         .replace(/\s+([요을를은는이가에도서로으로과와박밖에]+)(\s|$)/g, '$1$2')
         .replace(/\s+([요]+)/g, '$1')
         .replace(/\s+/g, ' ')
         .trim();
+
+    return {
+        korean: cleaned,
+        english: englishPart ? `(${englishPart})` : ""
+    };
 }
 
-// Pick a random phrase ensuring no back-to-back repeats
+// Pick a random phrase
 function getRandomPhrase() {
     if (!vocabularyDeck || vocabularyDeck.length === 0) return;
     
@@ -90,7 +114,7 @@ function getRandomPhrase() {
     if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// Text-to-Speech pronunciation
+// Text-to-Speech
 if (listenButton) {
     listenButton.addEventListener('click', () => {
         if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
@@ -103,13 +127,11 @@ if (listenButton) {
             utterance.rate = 0.9;
             window.speechSynthesis.speak(utterance);
             if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
-        } else {
-            alert("Text-to-speech is not supported in this browser.");
         }
     });
 }
 
-// Speech Recognition setup
+// Speech Recognition
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SpeechRecognition && recordingButton) {
     const recognition = new SpeechRecognition();
@@ -124,11 +146,7 @@ if (SpeechRecognition && recordingButton) {
         }
         if (transcriptionResult) transcriptionResult.innerText = "";
         if (coachMessageEl) coachMessageEl.innerText = "I'm listening to your pitch! Speak clearly.";
-        try {
-            recognition.start();
-        } catch (e) {
-            console.error(e);
-        }
+        try { recognition.start(); } catch (e) { console.error(e); }
     });
 
     recognition.onresult = (event) => {
@@ -153,22 +171,9 @@ if (SpeechRecognition && recordingButton) {
             if (coachMessageEl) coachMessageEl.innerText = "So close! Check your pitch and try again.";
         }
     };
-
-    recognition.onerror = () => {
-        if (feedbackEl) {
-            feedbackEl.innerText = "Error recognizing speech. Try again.";
-            feedbackEl.className = "incorrect";
-        }
-        if (coachMessageEl) coachMessageEl.innerText = "Oops, didn't catch that. Tap record again!";
-    };
-} else if (recordingButton) {
-    recordingButton.style.display = "none";
-    if (transcriptionResult) {
-        transcriptionResult.innerText = "Speech recognition not supported in this browser. Use Safari or Chrome.";
-    }
 }
 
-// Navigation buttons
+// Navigation
 if (nextButton) nextButton.addEventListener('click', getRandomPhrase);
 if (skipButton) {
     skipButton.addEventListener('click', () => {
@@ -188,24 +193,23 @@ if (addButton) {
             return;
         }
 
+        const parsed = parseAndCleanLine(kText);
         vocabularyDeck.push({
-            korean: cleanKoreanText(kText),
-            english: eText ? `(${eText})` : "(Custom phrase)"
+            korean: parsed.korean,
+            english: eText ? `(${eText})` : (parsed.english || "(Custom phrase)")
         });
 
         saveVocabulary();
-
         if (newKoreanInput) newKoreanInput.value = "";
         if (newEnglishInput) newEnglishInput.value = "";
         if (feedbackEl) {
             feedbackEl.innerText = "Phrase added permanently! ✨";
             feedbackEl.style.color = "#5856d6";
         }
-        if (coachMessageEl) coachMessageEl.innerText = "Added to your deck! Let's practice it!";
     });
 }
 
-// Batch import multiple phrases pasted from screenshots
+// Batch import multiple phrases
 if (batchAddButton) {
     batchAddButton.addEventListener('click', () => {
         const rawText = batchInput ? batchInput.value.trim() : "";
@@ -216,41 +220,97 @@ if (batchAddButton) {
 
         const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
         let addedCount = 0;
-        let currentKorean = "";
+        let pendingKorean = "";
 
         for (let i = 0; i < lines.length; i++) {
-            let line = lines[i];
-            if (/[가-힣]/.test(line)) {
-                line = cleanKoreanText(line);
-                if (currentKorean) {
-                    vocabularyDeck.push({ korean: currentKorean, english: "(Custom phrase)" });
+            const parsed = parseAndCleanLine(lines[i]);
+            
+            if (parsed.korean) {
+                if (pendingKorean) {
+                    vocabularyDeck.push({ korean: pendingKorean, english: "(Custom phrase)" });
                     addedCount++;
                 }
-                currentKorean = line;
-            } else if (currentKorean && line.length > 1) {
-                vocabularyDeck.push({ korean: currentKorean, english: `(${line})` });
-                addedCount++;
-                currentKorean = "";
+                pendingKorean = parsed.korean;
+                
+                if (parsed.english) {
+                    vocabularyDeck.push({ korean: pendingKorean, english: parsed.english });
+                    addedCount++;
+                    pendingKorean = "";
+                }
             }
         }
 
-        if (currentKorean) {
-            vocabularyDeck.push({ korean: cleanKoreanText(currentKorean), english: "(Custom phrase)" });
+        if (pendingKorean) {
+            vocabularyDeck.push({ korean: pendingKorean, english: "(Custom phrase)" });
             addedCount++;
         }
 
         if (addedCount > 0) {
+            lastAddedBatchCount = addedCount;
             saveVocabulary();
             if (batchInput) batchInput.value = "";
             if (feedbackEl) {
-                feedbackEl.innerText = `Imported ${addedCount} phrases! 🎉`;
+                feedbackEl.innerText = `Imported ${addedCount} clean phrases! 🎉`;
                 feedbackEl.className = "correct";
             }
-            if (coachMessageEl) coachMessageEl.innerText = `Added ${addedCount} phrases to your deck! 🌟`;
+            if (coachMessageEl) coachMessageEl.innerText = `Added ${addedCount} clean phrases to your deck! 🌟`;
+            if (undoButton) undoButton.style.display = "block";
             getRandomPhrase();
         } else {
-            alert("No valid Korean text found in the pasted text.");
+            alert("No valid Korean text found.");
         }
+    });
+}
+
+// Undo Last Batch Import
+if (undoButton) {
+    undoButton.addEventListener('click', () => {
+        if (lastAddedBatchCount > 0 && vocabularyDeck.length >= lastAddedBatchCount) {
+            vocabularyDeck.splice(-lastAddedBatchCount);
+            saveVocabulary();
+            if (feedbackEl) {
+                feedbackEl.innerText = `Reverted last import (${lastAddedBatchCount} phrases removed) ↩️`;
+                feedbackEl.className = "incorrect";
+            }
+            if (coachMessageEl) coachMessageEl.innerText = "Undid the last import!";
+            lastAddedBatchCount = 0;
+            undoButton.style.display = "none";
+            getRandomPhrase();
+        }
+    });
+}
+
+// Deck Manager Modal Controls
+if (deckCounterEl) {
+    deckCounterEl.addEventListener('click', () => {
+        renderDeckList();
+        if (deckModal) deckModal.style.display = "flex";
+    });
+}
+if (closeModal) {
+    closeModal.addEventListener('click', () => {
+        if (deckModal) deckModal.style.display = "none";
+        getRandomPhrase();
+    });
+}
+
+function renderDeckList() {
+    if (!deckListEl) return;
+    deckListEl.innerHTML = "";
+    vocabularyDeck.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = "deck-item";
+        div.innerHTML = `<span><b>${item.korean}</b> ${item.english}</span> <button class="delete-btn" data-index="${index}">Delete</button>`;
+        deckListEl.appendChild(div);
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-index'));
+            vocabularyDeck.splice(idx, 1);
+            saveVocabulary();
+            renderDeckList();
+        });
     });
 }
 
@@ -264,7 +324,6 @@ if (exportButton) {
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
-        if (coachMessageEl) coachMessageEl.innerText = "Deck backed up successfully!";
     });
 }
 
