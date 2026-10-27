@@ -114,16 +114,22 @@ function getRandomPhrase() {
     if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// Text-to-Speech pronunciation (iOS Silent Switch & Volume Fix)
+// Warm up the iOS Speech Engine on first interaction
+let voicesLoaded = false;
+function warmupSpeech() {
+    if (!voicesLoaded && 'speechSynthesis' in window) {
+        window.speechSynthesis.getVoices();
+        voicesLoaded = true;
+    }
+}
+document.body.addEventListener('touchstart', warmupSpeech, { once: true });
+document.body.addEventListener('click', warmupSpeech, { once: true });
+
+// Text-to-Speech pronunciation (iOS Silent Switch & Speech Engine Fix)
 if (listenButton) {
     listenButton.addEventListener('click', () => {
         if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
         const currentItem = vocabularyDeck[currentIndex];
-        
-        // Force audio session mode to 'playback' on iOS Safari
-        if (navigator.audioSession) {
-            try { navigator.audioSession.type = 'playback'; } catch(e){}
-        }
 
         if ('speechSynthesis' in window) {
             // Cancel any previous queued audio
@@ -134,10 +140,17 @@ if (listenButton) {
             utterance.volume = 1.0;
             utterance.rate = 0.85; // Slightly slower for clear pitch practice
 
-            // Small timeout delay required for iOS WebKit speech engine initialization
+            // Force voice assignment for Korean on iOS
+            const voices = window.speechSynthesis.getVoices();
+            const korVoice = voices.find(v => v.lang.includes('ko') || v.lang.includes('KO'));
+            if (korVoice) {
+                utterance.voice = korVoice;
+            }
+
+            // Small delay required for iOS WebKit speech synthesis initialization
             setTimeout(() => {
                 window.speechSynthesis.speak(utterance);
-            }, 50);
+            }, 100);
 
             if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
         } else {
