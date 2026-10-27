@@ -114,19 +114,34 @@ function getRandomPhrase() {
     if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// Text-to-Speech
+// Text-to-Speech pronunciation (iOS Silent Switch & Volume Fix)
 if (listenButton) {
     listenButton.addEventListener('click', () => {
         if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
         const currentItem = vocabularyDeck[currentIndex];
+        
+        // Force audio session mode to 'playback' on iOS Safari
+        if (navigator.audioSession) {
+            try { navigator.audioSession.type = 'playback'; } catch(e){}
+        }
+
         if ('speechSynthesis' in window) {
+            // Cancel any previous queued audio
             window.speechSynthesis.cancel();
+            
             const utterance = new SpeechSynthesisUtterance(currentItem.korean);
             utterance.lang = 'ko-KR';
             utterance.volume = 1.0;
-            utterance.rate = 0.9;
-            window.speechSynthesis.speak(utterance);
+            utterance.rate = 0.85; // Slightly slower for clear pitch practice
+
+            // Small timeout delay required for iOS WebKit speech engine initialization
+            setTimeout(() => {
+                window.speechSynthesis.speak(utterance);
+            }, 50);
+
             if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
+        } else {
+            alert("Text-to-speech is not supported in this browser.");
         }
     });
 }
