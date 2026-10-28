@@ -114,29 +114,25 @@ function getRandomPhrase() {
     if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// DIRECT AUDIO STREAM TTS (Bypasses iOS Speech Engine Restrictions)
-let activeAudio = null;
+// DIRECT AUDIO STREAM TTS (iOS Safari Unlocked)
+let activeAudio = new Audio(); // Pre-initialize audio object for iOS permission
 
 if (listenButton) {
     listenButton.addEventListener('click', () => {
         if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
         const currentItem = vocabularyDeck[currentIndex];
         
-        // Stop any currently playing audio
-        if (activeAudio) {
-            activeAudio.pause();
-            activeAudio = null;
-        }
-
         const encodedText = encodeURIComponent(currentItem.korean);
         const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=ko&client=tw-ob`;
         
-        activeAudio = new Audio(audioUrl);
+        activeAudio.src = audioUrl;
+        activeAudio.load();
         
         activeAudio.play().then(() => {
             if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
         }).catch(err => {
             console.error("Audio playback error:", err);
+            // Fallback to Web Speech API if blocked
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(currentItem.korean);
