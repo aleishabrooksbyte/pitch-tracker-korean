@@ -114,32 +114,39 @@ function getRandomPhrase() {
     if (coachMessageEl) coachMessageEl.innerText = "Listen to the pitch and try matching it!";
 }
 
-// DIRECT AUDIO STREAM TTS (iOS Safari Unlocked)
-let activeAudio = new Audio(); // Pre-initialize audio object for iOS permission
-
+// Reliable Audio TTS Engine (Mobile Chrome & Safari Compatible)
 if (listenButton) {
     listenButton.addEventListener('click', () => {
         if (currentIndex < 0 || !vocabularyDeck[currentIndex]) return;
         const currentItem = vocabularyDeck[currentIndex];
         
-        const encodedText = encodeURIComponent(currentItem.korean);
-        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodedText}&tl=ko&client=tw-ob`;
-        
-        activeAudio.src = audioUrl;
-        activeAudio.load();
-        
-        activeAudio.play().then(() => {
-            if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
-        }).catch(err => {
-            console.error("Audio playback error:", err);
-            // Fallback to Web Speech API if blocked
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(currentItem.korean);
-                utterance.lang = 'ko-KR';
+        // 1. Try ResponsiveVoice Engine first
+        if (window.responsiveVoice) {
+            window.responsiveVoice.speak(currentItem.korean, "Korean Female", {
+                rate: 0.85,
+                onstart: () => {
+                    if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
+                }
+            });
+            return;
+        }
+
+        // 2. Native Web Speech Engine Fallback
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(currentItem.korean);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.85;
+            
+            // Force WebKit to play utterance
+            setTimeout(() => {
                 window.speechSynthesis.speak(utterance);
-            }
-        });
+            }, 50);
+
+            if (coachMessageEl) coachMessageEl.innerText = "Listening closely helps your pitch!";
+        } else {
+            alert("Audio playback is not supported on this browser context.");
+        }
     });
 }
 
